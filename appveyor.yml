@@ -1,7 +1,8 @@
 environment:
   github_access_token:
     secure: 7XRuu+gUArQP1WgU+Eg0rjurjpPvhdaA+4G1YzsjvoEkoWHaFz7ULSIoeoJzBG93
-
+  coveralls_access_token:
+    secure: p8ukadFxJ05HJDu0LVKYtI+1sT6K2muMWHAg9lZ9g56DgduMvC0Z5s0txgFdwyTv
 init:
   - ps: if(-not $env:APPVEYOR_PULL_REQUEST_NUMBER) { $env:is_not_pr = "true"; }
 

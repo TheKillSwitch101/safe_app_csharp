@@ -1,3 +1,5 @@
+#tool "nuget:?package=OpenCover"
+#addin Cake.Coveralls
 
 // --------------------------------------------------------------------------------
 // Desktop Build and Test
@@ -5,7 +7,9 @@
 
 var coreTestProject = File("SafeApp.Tests.Core/SafeApp.Tests.Core.csproj");
 var coreTestBin = Directory("SafeApp.Tests.Core/bin/Release");
+var codeCoverageFilePath = "SafeApp.Tests.Core/TestResults/CodeCoverResult.xml";
 var Desktop_TESTS_RESULT_PATH = "SafeApp.Tests.Core/TestResults/DesktopTestResult.xml";
+coveralls_token = EnvironmentVariable("coveralls_access_token");
 
 Task("Build-Desktop-Project")
   .IsDependentOn("Restore-NuGet")
@@ -29,14 +33,36 @@ Task("Build-Desktop-Project")
 Task("Run-Desktop-Tests")
   .IsDependentOn("Build-Desktop-Project")
   .Does(() => {
-      DotNetCoreTest(
-        coreTestProject.Path.FullPath,
-        new DotNetCoreTestSettings()
-        {
-          Configuration = configuration,
-          ArgumentCustomization = args => args.Append("--logger \"trx;LogFileName=DesktopTestResult.xml\"")
-        });
-  })
+    OpenCover(tool => {
+        tool.DotNetCoreTest(
+            coreTestProject.Path.FullPath,
+            new DotNetCoreTestSettings()
+            {
+              Configuration = configuration,
+              ArgumentCustomization = args => args.Append("--logger \"trx;LogFileName=DesktopTestResult.xml\"")
+            });
+        },
+        new FilePath(codeCoverageFilePath),
+        new OpenCoverSettings()
+        { 
+            SkipAutoProps = true,
+            Register = "user",
+            OldStyle = true
+        }
+        .WithFilter("+[*]*")
+        .WithFilter("-[SafeApp.Tests*]*")
+        .WithFilter("-[NUnit3.*]*"));
+  });
+
+Task("Upload-Coverage-Report")
+  .IsDependentOn("Run-Desktop-Tests")
+	.Does(() =>
+	{
+		CoverallsIo(codeCoverageFilePath, new CoverallsIoSettings()
+		{
+			RepoToken = coveralls_token
+		});
+	})
   .Finally(() =>
   {
     if(AppVeyor.IsRunningOnAppVeyor)
